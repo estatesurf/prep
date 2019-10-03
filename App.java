@@ -99,10 +99,11 @@ public class App {
 
         try {
             String line;
+            boolean foundEverything = false;
 
             //look for patterns until EOF reached
             //NOTE: This code assumes only one instance of each "pattern" per file exists
-            while((line = input.readLine()) != null) {
+            while(!foundEverything && ((line = input.readLine()) != null)) {
 
                 Matcher m = fromPattern.matcher(line);
                 if(m.find()) {
@@ -115,6 +116,10 @@ public class App {
                 m = datePattern.matcher(line);
                 if(m.find()) {
                     date = m.group(1);
+                }
+                if (!from.isEmpty() && !subject.isEmpty() && !date.isEmpty())
+                {
+                    foundEverything = true;
                 }
             }
 
