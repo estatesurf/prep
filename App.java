@@ -9,20 +9,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
-
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
 import java.util.ArrayList;
 import java.util.List;
 
 
 public class App {
 
-    public static Integer MAXTHREADS = 10;
     public static String FROM = "From:";
     public static String SUBJECT = "Subject:";
     public static String DATE = "Date:";
@@ -30,31 +22,21 @@ public class App {
     public static String INPUT_FILENAME = "sampleEmails.tar.gz";
     public static String EMAIL_WORKING_DIR = "emailsDir";
 
-    private static final ExecutorService threadpool = Executors.newFixedThreadPool(MAXTHREADS);
 
-    //The "expected" structure of tar files should really be determined at run time as archive structures may change
-    public static String EXPECTED_ARCHIVE_STRUCTURE = "\\sampleEmails\\smallset";
-
-    public static void main(String[] args) throws InterruptedException, ExecutionException {
+    public static void main(String[] args) {
         //Pick a dir to stage the working area for the email archive
         App app = new App(EMAIL_WORKING_DIR);
 
         List<String> tarBallPaths= app.createListOfTarballs();
 
-        tarBallPaths.parallelStream().forEach(App::decompressArchive);
-
         //create/replace the results file
         setupOutputFile(OUTPUT_FILENAME);
 
-        //parse each email from the email archive
-        app.iterateOverFiles();
+        tarBallPaths.parallelStream().forEach(App::processArchive);
 
         //cleanup and exit
         closeOutputFile();
     }
-
-    //private static class ProcessTarball implements Callable {
-    //}
 
     private String rootPath;
     private static FileWriter writer;
@@ -67,7 +49,7 @@ public class App {
         setRootPath(rootPath);
     }
 
-    public static void decompressArchive(String path)
+    public static void processArchive(String path)
     {
         File tarball = new File(path);
         try
@@ -79,12 +61,14 @@ public class App {
         catch (IOException e) {
             e.printStackTrace();
         }
+
+        //parse each email from the email archive
+        iterateOverFiles(path);
     }
 
     public List<String> createListOfTarballs()
     {
-        String targetFile = EMAIL_WORKING_DIR;
-        File f = new File(targetFile);
+        File f = new File(EMAIL_WORKING_DIR);
         List<String> filePath = new ArrayList<>();
         for (File file : f.listFiles()) {
            filePath.add(file.getPath());
@@ -92,38 +76,42 @@ public class App {
         return filePath;
     }
 
-    public void iterateOverFiles() {
-        //assemble path to where the actual email files will be.  
-        String targetFile = EMAIL_WORKING_DIR + EXPECTED_ARCHIVE_STRUCTURE;
-        File f = new File(targetFile);
-        BufferedReader br = null;
+    public static void iterateOverFiles(String path) {
+        File f = new File(path);
 
-        File[] files = f.listFiles();
+        List<String> emailFilePaths = new ArrayList<>();
+        for (File file : f.listFiles()) {
+           emailFilePaths.add(file.getPath());
+        }
 
         //iterate over and process each email file
-        for(File file : files) {
+        emailFilePaths.parallelStream().forEach(App::processAndwriteOutputPerEmail);
+    }
 
-            if(file.isFile()) {
-                try {
-                    br = new BufferedReader(new FileReader(file));
-                    writeLineToOutputFile(file.getName() + " | " + processFile(br));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                finally {
-                    if(br != null) {
-                        try {
-                            br.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+    public static void processAndwriteOutputPerEmail(String path) {
+        File file = new File(path);
+        BufferedReader br = null;
+
+        if(file.isFile()) {
+            try {
+                br = new BufferedReader(new FileReader(file));
+                writeLineToOutputFile(file.getName() + " | " + processFile(br));
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            finally {
+                if(br != null) {
+                    try {
+                        br.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
             }
         }
     }
 
-    public String processFile(BufferedReader input) {
+    public static String processFile(BufferedReader input) {
 
         String from = "", subject = "", date = "";
 
