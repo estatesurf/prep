@@ -21,13 +21,16 @@ public class App {
     public static String OUTPUT_FILENAME = "results.txt";
     public static String INPUT_FILENAME = "sampleEmails.tar.gz";
     public static String EMAIL_WORKING_DIR = "emailsDir";
+    public static String EXPECTED_ARCHIVE_STRUCTURE = "\\sampleEmails\\smallset";
+    public static String TARBALLEXT = ".tar.gz";
+    public static String EMAILEXT = ".msg";
 
 
     public static void main(String[] args) {
         //Pick a dir to stage the working area for the email archive
         App app = new App(".");
 
-        List<String> tarBallPaths= app.createListOfTarballs(app.getRootPath());
+        List<String> tarBallPaths= createListOfFiles(app.getRootPath(), TARBALLEXT);
 
         //create/replace the results file
         setupOutputFile(OUTPUT_FILENAME);
@@ -63,36 +66,26 @@ public class App {
         }
 
         //parse each email from the email archive
-        iterateOverFiles(path);
+        iterateOverFiles(EMAIL_WORKING_DIR + EXPECTED_ARCHIVE_STRUCTURE);
     }
 
-    public List<String> createListOfTarballs(String path)
+    public static List<String> createListOfFiles(String path, String extension)
     {
-        List<String> tarballs = new ArrayList<String>();
+        System.out.println("Looking for files in dir " + path + "\n"); 
+        List<String> files = new ArrayList<String>();
         File dir = new File(path);
         for (File file : dir.listFiles()) {
-            if (file.getName().endsWith((".tar.gz"))) {
-                tarballs.add(file.getName());
+            if (file.getName().endsWith((extension))) {
+                files.add(file.getName());
+                System.out.println("Found files " + file.getPath() + "\n"); 
             }
         }
 
-        //File f = new File(EMAIL_WORKING_DIR);
-        //List<String> filePath = new ArrayList<>();
-        //for (File file : f.listFiles()) {
-           //filePath.add(file.getPath());
-           //System.out.println("Found archive " + file.getPath() + "\n"); 
-        //}
-        return tarballs;
+        return files;
     }
 
     public static void iterateOverFiles(String path) {
-        File f = new File(path);
-
-        List<String> emailFilePaths = new ArrayList<>();
-        for (File file : f.listFiles()) {
-           emailFilePaths.add(file.getPath());
-           System.out.println("Found email " + file.getPath() + "\n"); 
-        }
+        List<String> emailFilePaths = createListOfFiles(path, EMAILEXT);
 
         //iterate over and process each email file
         emailFilePaths.parallelStream().forEach(App::processAndwriteOutputPerEmail);
