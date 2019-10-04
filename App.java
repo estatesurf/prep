@@ -55,18 +55,19 @@ public class App {
     public static void processArchive(String path)
     {
         File tarball = new File(path);
+        String dirpath = "";
         try
         {
             String newTarFile = decompressGzip(tarball, EMAIL_WORKING_DIR);
             File tarFile = new File(newTarFile);
-            unTarFile(tarFile, EMAIL_WORKING_DIR);
+            dirpath = unTarFile(tarFile, EMAIL_WORKING_DIR);
         }
         catch (IOException e) {
             e.printStackTrace();
         }
 
         //parse each email from the email archive
-        iterateOverFiles(EMAIL_WORKING_DIR + EXPECTED_ARCHIVE_STRUCTURE);
+        iterateOverFiles(EMAIL_WORKING_DIR + dirpath);
     }
 
     public static List<String> createListOfFiles(String path, String extension)
@@ -76,7 +77,7 @@ public class App {
         File dir = new File(path);
         for (File file : dir.listFiles()) {
             if (file.getName().endsWith((extension))) {
-                files.add(file.getName());
+                files.add(file.getPath());
                 System.out.println("Found files " + file.getPath() + "\n"); 
             }
         }
@@ -95,6 +96,7 @@ public class App {
         File file = new File(path);
         BufferedReader br = null;
 
+        System.out.println("reading from email " + path + "\n"); 
         if(file.isFile()) {
             try {
                 br = new BufferedReader(new FileReader(file));
@@ -184,10 +186,11 @@ public class App {
         return targetFile;
     }
 
-    private static void unTarFile(File tarFile, String targetDir) throws IOException {
+    private static String unTarFile(File tarFile, String targetDir) throws IOException {
         String[] filenameParts = tarFile.getName().split("\\.tar");
         String filenamePrefix = filenameParts[0];
         String slash = System.getProperty("file.separator");
+        String dirpath = ".";
         File output = new File(targetDir + slash + filenamePrefix);
         FileInputStream fis = new FileInputStream(tarFile);
         TarArchiveInputStream tis = new TarArchiveInputStream(fis);
@@ -210,8 +213,11 @@ public class App {
                 IOUtils.copy(tis, fos);
                 fos.close();
             }
+            String[] dirpathParts = outputFile.getPath().split(EMAIL_WORKING_DIR);
+            dirpath = dirpathParts[1];
         }
         tis.close();
+        return dirpath;
     }
 
    private static void setupOutputFile(String filename) {
