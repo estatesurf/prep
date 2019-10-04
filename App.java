@@ -206,6 +206,9 @@ public class App {
                 if (!outputFile.exists()) {
                     outputFile.mkdirs();
                 }
+                String[] dirpathParts = outputFile.getPath().split(EMAIL_WORKING_DIR);
+                dirpath = dirpathParts[1];
+                System.out.println("\n\n\nUNTAR DIRPATH = " + dirpath + "\n\n\n");
             } else {
                 System.out.println("email File created ---- " + outputFile.getAbsolutePath());
                 outputFile.getParentFile().mkdirs();
@@ -213,8 +216,6 @@ public class App {
                 IOUtils.copy(tis, fos);
                 fos.close();
             }
-            String[] dirpathParts = outputFile.getPath().split(EMAIL_WORKING_DIR);
-            dirpath = dirpathParts[1];
         }
         tis.close();
         return dirpath;
